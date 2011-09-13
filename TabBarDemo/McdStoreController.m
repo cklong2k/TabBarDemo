@@ -55,7 +55,7 @@
 {
     [super viewDidLoad];
 //    NSLog(@"%@",[mcdStore title]);
-    [self setTitle:[mcdStore title]];
+//    [self setTitle:[mcdStore title]];
     // Do any additional setup after loading the view from its nib.
 }
 

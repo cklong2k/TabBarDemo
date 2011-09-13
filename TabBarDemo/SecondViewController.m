@@ -20,8 +20,10 @@
 
 @synthesize fetchedResultsController = __fetchedResultsController;
 @synthesize managedObjectContext = __managedObjectContext;
+@synthesize persistentStoreCoordinator = __persistentStoreCoordinator;
 
 - (NSFetchedResultsController *) fetchedResultsController {
+<<<<<<< HEAD
 
 	if (!__fetchedResultsController) {
 		
@@ -50,6 +52,37 @@
 		
 			NSURL *modelURL = [[NSBundle mainBundle] URLForResource:@"TabBarDemo" withExtension:@"momd"];
 			NSManagedObjectModel *model = [[[NSManagedObjectModel alloc] initWithContentsOfURL:modelURL] autorelease];
+=======
+    
+	if (!__fetchedResultsController) {
+        
+		__fetchedResultsController = [[NSFetchedResultsController alloc] initWithFetchRequest:((^ {
+            
+			NSFetchRequest *fetchRequest = [[[NSFetchRequest alloc] init] autorelease];
+			fetchRequest.entity = [NSEntityDescription entityForName:@"CdMcdStore" inManagedObjectContext:self.managedObjectContext];
+			fetchRequest.sortDescriptors = [NSArray arrayWithObject:[NSSortDescriptor sortDescriptorWithKey:@"title" ascending:YES]];
+			return fetchRequest;
+            
+		})()) managedObjectContext:self.managedObjectContext sectionNameKeyPath:nil cacheName:nil];
+        
+	}
+    
+	return __fetchedResultsController;
+    
+}
+
+- (NSManagedObjectContext *) managedObjectContext {
+    
+	if (!__managedObjectContext) {
+        
+		__managedObjectContext = [[NSManagedObjectContext alloc] init];
+        
+		[__managedObjectContext setPersistentStoreCoordinator:((^ {
+            
+			NSURL *modelURL = [[NSBundle mainBundle] URLForResource:@"TabBarDemo" withExtension:@"momd"];
+			NSManagedObjectModel *model = [[[NSManagedObjectModel alloc] initWithContentsOfURL:modelURL] autorelease];
+            
+>>>>>>> add Core Data, save store information
 			NSPersistentStoreCoordinator *coordinator = [[[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:model] autorelease];
 			NSString *documentsPath = [[NSSet setWithArray:NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)] anyObject];
 			NSString *storePath = [[documentsPath stringByAppendingPathComponent:@"DataStore"] stringByAppendingPathExtension:@"sqlite"];
@@ -57,6 +90,7 @@
 			NSError *addingError = nil;
 			if (![coordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:nil error:&addingError])
 				NSLog(@"Error adding persistent store: %@", addingError);
+<<<<<<< HEAD
 			
 			return coordinator;
 		
@@ -69,28 +103,42 @@
 }
 
 - (void) saveData
+=======
+            
+			return coordinator;
+            
+		})())];
+        
+	}
+    
+	return __managedObjectContext;
+    
+}
+
+- (void) saveData: (McdStore *)store
+>>>>>>> add Core Data, save store information
 {
     // Create a new instance of the entity managed by the fetched results controller.
     NSManagedObjectContext *context = [self.fetchedResultsController managedObjectContext];
-    NSManagedObject *newManagedObject = [NSEntityDescription insertNewObjectForEntityForName:@"Store" inManagedObjectContext:context];
+    NSManagedObject *newManagedObject = [NSEntityDescription insertNewObjectForEntityForName:@"CdMcdStore" inManagedObjectContext:context];
     
     // If appropriate, configure the new managed object.
     // Normally you should use accessor methods, but using KVC here avoids the need to add a custom class to the template.
-    [newManagedObject setValue:@"svsdfv" forKey:@"title"];
+    [newManagedObject setValue:store.title forKey:@"title"];
+    [newManagedObject setValue:store.drivethrought forKey:@"drivethrought"];
+    [newManagedObject setValue:store.opentime forKey:@"opentime"];
+    [newManagedObject setValue:store.address forKey:@"address"];
+
+    [newManagedObject setValue:[NSNumber numberWithDouble:[store.latitude doubleValue]] forKey:@"latitude"];
+    [newManagedObject setValue:[NSNumber numberWithDouble:[store.longitude doubleValue]] forKey:@"longitude"];
     
     // Save the context.
     NSError *error = nil;
     if (![context save:&error])
     {
-        /*
-         Replace this implementation with code to handle the error appropriately.
-         
-         abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development. If it is not possible to recover from the error, display an alert panel that instructs the user to quit the application by pressing the Home button.
-         */
         NSLog(@"Unresolved error %@, %@", error, [error userInfo]);
-        abort();
     }
-    NSLog(@"CdSave");
+    //NSLog(@"CdSave");
 }
 
 -(IBAction) showAll:(id) sender
@@ -103,12 +151,51 @@
 
 -(IBAction) showDt:(id) sender
 {
+
     [mapView removeAnnotations:mapView.annotations];
-    for (McdStore *store in mcdStores) {
-        if([store.drivethrought isEqual:@"24小時得來速"]){
-            [mapView addAnnotation:store];
-        }
+
+    //use core data
+    NSManagedObjectContext *context = [self.fetchedResultsController managedObjectContext];
+    // Edit the entity name as appropriate.
+    NSEntityDescription *entity = [NSEntityDescription entityForName:@"CdMcdStore" inManagedObjectContext:self.managedObjectContext];
+    // Create the fetch request for the entity.
+    NSFetchRequest *fetchRequest = [[NSFetchRequest alloc] init];
+
+    [fetchRequest setEntity:entity];
+    // Set example predicate and sort orderings...
+    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"(drivethrought = %@)", @"24小時得來速"];
+    [fetchRequest setPredicate:predicate];
+    
+    NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc]
+                                        initWithKey:@"title" ascending:YES];
+    [fetchRequest setSortDescriptors:[NSArray arrayWithObject:sortDescriptor]];
+    [sortDescriptor release];    
+    
+    NSError *error = nil;
+    NSArray *array = [context executeFetchRequest:fetchRequest error:&error];
+    //NSLog(@"%@", array);
+    if (array == nil)
+    {
+        // Deal with error...
+        NSLog(@"Fetched error");
     }
+    for (McdStore *item in array) {
+        
+        McdStore *mcdItem = [[McdStore alloc] init];
+        CLLocationCoordinate2D mylocation;
+        mylocation.latitude = [item.latitude doubleValue];
+        mylocation.longitude = [item.longitude doubleValue];
+        mcdItem.title = item.title;
+        mcdItem.address = item.address;
+        mcdItem.opentime = item.opentime;
+        mcdItem.coordinate = mylocation;
+        NSLog(@"%@", mcdItem.title);
+        
+        [mapView addAnnotation:mcdItem];
+        [mcdItem release];
+    }
+    
+    [fetchRequest release];
 }
 
 -(void) gotoTaipei
@@ -131,12 +218,12 @@
 }
 -(void) getMcdXML
 {
-    NSLog(@"startSearch");
+    //NSLog(@"startSearch");
     // Change UI to loading state
     // Create the URL which would be 
     NSString *urlAsString = [NSString stringWithFormat:@"%@", @"http://www.mcdonalds.com.tw/api/map_xml.php" ];
     
-    NSLog(@"urlAsString: %@",urlAsString );
+    //NSLog(@"urlAsString: %@",urlAsString );
     NSURLRequest *req = [[NSURLRequest alloc] initWithURL:[NSURL URLWithString:urlAsString]];
     // Create the NSURLConnection con object with the NSURLRequest req object
     // and make this MountainsEx01ViewController the delegate.
@@ -237,9 +324,10 @@
         mcdItem.coordinate = mylocation;
         
         [mapView addAnnotation:mcdItem];
-        [mcdStores addObject:mcdItem];
+        //[mcdStores addObject:mcdItem];
         //NSLog(@"%d", [mcdStores count]);
-        [self saveData];
+
+        [self saveData:mcdItem];
         
         [mcdItem release];
         mcdItem = nil;
@@ -255,8 +343,8 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+
     
-    [self gotoTaipei];
     mcdStores = [[NSMutableArray alloc] init];
     
     mapView.delegate = self;
@@ -279,13 +367,14 @@
     locationManager.delegate = nil;
     [locationManager release];
     
-	NSLog(@"show setup 1: %f %f", location.coordinate.latitude, location.coordinate.longitude);
+	//NSLog(@"show setup 1: %f %f", location.coordinate.latitude, location.coordinate.longitude);
 
     // 把region設定給MapView
     [mapView setRegion:newRegion animated:YES];
     
     //GET MCD STORE
     [self getMcdXML];
+
     //[self gotoTaipei];
     
     //Annotation
@@ -298,8 +387,10 @@
 	
 	// if it's the user location, just return nil.
     if ([annotation isKindOfClass:[MKUserLocation class]])
+    {
+        NSLog(@"annotation isKindOfClass");
         return nil;
-    
+    }
 	// try to dequeue an existing pin view first
 	static NSString* AnnotationIdentifier = @"AnnotationIdentifier";
 	MKPinAnnotationView* pinView = [[[MKPinAnnotationView alloc]
