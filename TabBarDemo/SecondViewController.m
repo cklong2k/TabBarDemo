@@ -23,7 +23,6 @@
 @synthesize persistentStoreCoordinator = __persistentStoreCoordinator;
 
 - (NSFetchedResultsController *) fetchedResultsController {
-<<<<<<< HEAD
 
 	if (!__fetchedResultsController) {
 		
@@ -52,37 +51,6 @@
 		
 			NSURL *modelURL = [[NSBundle mainBundle] URLForResource:@"TabBarDemo" withExtension:@"momd"];
 			NSManagedObjectModel *model = [[[NSManagedObjectModel alloc] initWithContentsOfURL:modelURL] autorelease];
-=======
-    
-	if (!__fetchedResultsController) {
-        
-		__fetchedResultsController = [[NSFetchedResultsController alloc] initWithFetchRequest:((^ {
-            
-			NSFetchRequest *fetchRequest = [[[NSFetchRequest alloc] init] autorelease];
-			fetchRequest.entity = [NSEntityDescription entityForName:@"CdMcdStore" inManagedObjectContext:self.managedObjectContext];
-			fetchRequest.sortDescriptors = [NSArray arrayWithObject:[NSSortDescriptor sortDescriptorWithKey:@"title" ascending:YES]];
-			return fetchRequest;
-            
-		})()) managedObjectContext:self.managedObjectContext sectionNameKeyPath:nil cacheName:nil];
-        
-	}
-    
-	return __fetchedResultsController;
-    
-}
-
-- (NSManagedObjectContext *) managedObjectContext {
-    
-	if (!__managedObjectContext) {
-        
-		__managedObjectContext = [[NSManagedObjectContext alloc] init];
-        
-		[__managedObjectContext setPersistentStoreCoordinator:((^ {
-            
-			NSURL *modelURL = [[NSBundle mainBundle] URLForResource:@"TabBarDemo" withExtension:@"momd"];
-			NSManagedObjectModel *model = [[[NSManagedObjectModel alloc] initWithContentsOfURL:modelURL] autorelease];
-            
->>>>>>> add Core Data, save store information
 			NSPersistentStoreCoordinator *coordinator = [[[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:model] autorelease];
 			NSString *documentsPath = [[NSSet setWithArray:NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)] anyObject];
 			NSString *storePath = [[documentsPath stringByAppendingPathComponent:@"DataStore"] stringByAppendingPathExtension:@"sqlite"];
@@ -90,8 +58,6 @@
 			NSError *addingError = nil;
 			if (![coordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:nil error:&addingError])
 				NSLog(@"Error adding persistent store: %@", addingError);
-<<<<<<< HEAD
-			
 			return coordinator;
 		
 		})())];
@@ -101,22 +67,7 @@
 	return __managedObjectContext;
 
 }
-
-- (void) saveData
-=======
-            
-			return coordinator;
-            
-		})())];
-        
-	}
-    
-	return __managedObjectContext;
-    
-}
-
 - (void) saveData: (McdStore *)store
->>>>>>> add Core Data, save store information
 {
     // Create a new instance of the entity managed by the fetched results controller.
     NSManagedObjectContext *context = [self.fetchedResultsController managedObjectContext];
@@ -141,12 +92,64 @@
     //NSLog(@"CdSave");
 }
 
+-(void)deleteAllData
+{
+    NSManagedObjectContext *context = [self.fetchedResultsController managedObjectContext];
+    NSEntityDescription *entity = [NSEntityDescription entityForName:@"CdMcdStore" inManagedObjectContext:self.managedObjectContext];
+    NSFetchRequest *fetchRequest = [[NSFetchRequest alloc] init];
+    [fetchRequest setEntity:entity];
+    // Commit the change.
+    NSArray *myObjectsToDelete = [context executeFetchRequest:fetchRequest error:nil];
+    
+    for (McdStore *objectToDelete in myObjectsToDelete) {
+        [context deleteObject:objectToDelete];
+    }
+    NSError *error = nil;
+    
+    if (![context save:&error]) {
+        
+        // Handle the error.
+        
+    }
+}
+
 -(IBAction) showAll:(id) sender
 {
     [mapView removeAnnotations:mapView.annotations];
-    for (McdStore *store in mcdStores) {
-        [mapView addAnnotation:store];
-    }    
+    //use core data
+    NSManagedObjectContext *context = [self.fetchedResultsController managedObjectContext];
+    // Edit the entity name as appropriate.
+    NSEntityDescription *entity = [NSEntityDescription entityForName:@"CdMcdStore" inManagedObjectContext:self.managedObjectContext];
+    // Create the fetch request for the entity.
+    NSFetchRequest *fetchRequest = [[NSFetchRequest alloc] init];
+    
+    [fetchRequest setEntity:entity];
+    
+    NSError *error = nil;
+    NSArray *array = [context executeFetchRequest:fetchRequest error:&error];
+    //NSLog(@"%@", array);
+    if (array == nil)
+    {
+        // Deal with error...
+        NSLog(@"Fetched error");
+    }
+    for (McdStore *item in array) {
+        
+        McdStore *mcdItem = [[McdStore alloc] init];
+        CLLocationCoordinate2D mylocation;
+        mylocation.latitude = [item.latitude doubleValue];
+        mylocation.longitude = [item.longitude doubleValue];
+        mcdItem.title = item.title;
+        mcdItem.address = item.address;
+        mcdItem.opentime = item.opentime;
+        mcdItem.coordinate = mylocation;
+        NSLog(@"%@", mcdItem.title);
+        
+        [mapView addAnnotation:mcdItem];
+        [mcdItem release];
+    }
+    
+    [fetchRequest release];   
 }
 
 -(IBAction) showDt:(id) sender
@@ -344,6 +347,7 @@
 {
     [super viewDidLoad];
 
+    [self deleteAllData];
     
     mcdStores = [[NSMutableArray alloc] init];
     
