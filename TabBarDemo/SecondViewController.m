@@ -102,14 +102,13 @@
     NSArray *myObjectsToDelete = [context executeFetchRequest:fetchRequest error:nil];
     
     for (McdStore *objectToDelete in myObjectsToDelete) {
+        //NSLog(@"delete %@", objectToDelete.title);
         [context deleteObject:objectToDelete];
     }
     NSError *error = nil;
     
     if (![context save:&error]) {
-        
         // Handle the error.
-        
     }
 }
 
@@ -143,7 +142,7 @@
         mcdItem.address = item.address;
         mcdItem.opentime = item.opentime;
         mcdItem.coordinate = mylocation;
-        NSLog(@"%@", mcdItem.title);
+        //NSLog(@"%@", mcdItem.title);
         
         [mapView addAnnotation:mcdItem];
         [mcdItem release];
@@ -192,7 +191,7 @@
         mcdItem.address = item.address;
         mcdItem.opentime = item.opentime;
         mcdItem.coordinate = mylocation;
-        NSLog(@"%@", mcdItem.title);
+        //NSLog(@"%@", mcdItem.title);
         
         [mapView addAnnotation:mcdItem];
         [mcdItem release];
@@ -392,7 +391,7 @@
 	// if it's the user location, just return nil.
     if ([annotation isKindOfClass:[MKUserLocation class]])
     {
-        NSLog(@"annotation isKindOfClass");
+        //NSLog(@"annotation isKindOfClass");
         return nil;
     }
 	// try to dequeue an existing pin view first
